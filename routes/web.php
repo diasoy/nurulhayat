@@ -73,13 +73,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::post('/midtrans/token', [OrderController::class, 'midtransToken']);
-    Route::post('/midtrans/notification', [OrderController::class, 'midtransNotification']);
-    Route::post('/order/update-status', [OrderController::class, 'updateStatus']);
-    Route::get('/order/success', function () {
-        return view('order-success');
-    });
 });
+
+Route::post('/midtrans/token', [OrderController::class, 'midtransToken']);
+Route::post('/midtrans/notification', [OrderController::class, 'midtransNotification']);
+Route::post('/order/update-status', [OrderController::class, 'updateStatus']);
+Route::get('/order/success', [OrderController::class, 'orderSuccess']);
 
 require __DIR__ . '/auth.php';

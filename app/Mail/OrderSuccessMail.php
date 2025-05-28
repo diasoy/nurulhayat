@@ -21,6 +21,6 @@ class OrderSuccessMail extends Mailable
     public function build()
     {
         return $this->subject('Konfirmasi Pemesanan Aqiqah Berhasil')
-            ->view('emails.order_success');
+            ->markdown('emails.order_success');
     }
 }

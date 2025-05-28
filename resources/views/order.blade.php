@@ -17,8 +17,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @endif
-    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-jHWV-gx1oyKlK2OE"></script>
-
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
 </head>
 
 <body class="antialiased bg-gradient-to-br from-primary-light/10 to-white dark:from-primary-dark dark:to-gray-900 min-h-screen">
@@ -454,7 +453,6 @@
         function handleOrderSubmit(event) {
             event.preventDefault();
 
-            // Ambil data form
             const form = document.getElementById('orderForm');
             const formData = new FormData(form);
 
@@ -467,9 +465,12 @@
                     },
                     body: formData
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('Gagal mendapatkan token Midtrans');
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.snap_token) {
+                    if (data.snap_token && window.snap) {
                         window.snap.pay(data.snap_token, {
                             onSuccess: function(result) {
                                 fetch('/order/update-status', {

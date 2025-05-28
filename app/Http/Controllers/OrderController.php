@@ -8,20 +8,19 @@ use Midtrans\Config;
 use Midtrans\Notification;
 use App\Mail\OrderSuccessMail;
 use Illuminate\Support\Facades\Mail;
-
+use Midtrans\Snap;
+use Illuminate\Support\Facades\Log;
 class OrderController extends Controller
 {
     public function midtransToken(Request $request)
     {
-        // Set Midtrans config
-        Config::$serverKey = 'SB-Mid-server-IvGHB48Hpnyo2y-gxaguMz47';
-        Config::$isProduction = false; // Sandbox
-        Config::$isSanitized = true;
-        Config::$is3ds = true;
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = config('midtrans.is_sanitized');
+        Config::$is3ds = config('midtrans.is_3ds');
         $orderId = 'ORDER-' . time();
         $grossAmount = (int) $request->input('summary_total', 0);
 
-        // Simpan order ke database
         $order = new Order();
         $order->pemesan_nama = $request->input('pemesan_nama');
         $order->pemesan_alamat = $request->input('pemesan_alamat');
@@ -59,19 +58,18 @@ class OrderController extends Controller
             ]
         ];
 
-        $snapToken = \Midtrans\Snap::getSnapToken($params);
+        $snapToken = Snap::getSnapToken($params);
 
         return response()->json(['snap_token' => $snapToken]);
     }
 
     public function midtransNotification(Request $request)
     {
-        Config::$serverKey = 'YOUR_MIDTRANS_SERVER_KEY';
-        Config::$isProduction = false;
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
 
         $notif = new Notification();
 
-        // Ambil data custom dari order_id (misal: ORDER-<timestamp>)
         $orderId = $notif->order_id;
         $transactionStatus = $notif->transaction_status;
         $paymentType = $notif->payment_type;
@@ -80,14 +78,10 @@ class OrderController extends Controller
             $vaNumber = $notif->va_numbers[0]->va_number;
         }
 
-        // Cek jika pembayaran sukses
         if ($transactionStatus == 'settlement' || $transactionStatus == 'capture') {
-            // Ambil data order dari database, atau buat baru jika belum ada
             $order = Order::where('order_id', $orderId)->first();
             if (!$order) {
-                // Data order dari snap_token harus dikirim ke backend saat generate token,
-                // atau bisa juga simpan data order sebelum proses pembayaran.
-                // Untuk contoh ini, asumsikan data order sudah disimpan sebelum pembayaran.
+
                 return response()->json(['message' => 'Order not found'], 404);
             }
             $order->midtrans_transaction_status = $transactionStatus;
@@ -116,13 +110,31 @@ class OrderController extends Controller
             $order->midtrans_raw = $midtransRaw;
             $order->save();
 
-            // Kirim email hanya jika status sukses
-            if ($transactionStatus === 'settlement' || $transactionStatus === 'capture') {
-                Mail::to($order->pemesan_email)->send(new OrderSuccessMail($order));
+            if ($order->midtrans_transaction_status === 'settlement' || $order->midtrans_transaction_status === 'capture') {
+                try {
+                    Mail::to($order->pemesan_email)->send(new OrderSuccessMail($order));
+                } catch (\Exception $e) {
+                    Log::error('Gagal mengirim email order sukses: ' . $e->getMessage());
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Pembayaran berhasil, namun email gagal dikirim: ' . $e->getMessage()
+                    ], 500);
+                }
             }
 
             return response()->json(['success' => true]);
         }
         return response()->json(['success' => false], 404);
+    }
+
+    public function orderSuccess(Request $request)
+    {
+        $order = Order::orderBy('created_at', 'desc')->first();
+
+        if (!$order) {
+            return redirect('/')->with('error', 'Order tidak ditemukan.');
+        }
+
+        return view('order-success', compact('order'));
     }
 }
