@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/OrderController.php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -10,8 +10,41 @@ use App\Mail\OrderSuccessMail;
 use Illuminate\Support\Facades\Mail;
 use Midtrans\Snap;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+
 class OrderController extends Controller
 {
+    public function index()
+    {
+        $orders = Order::all();
+        return view('Admin.order.index', compact('orders'));
+    }
+
+    public function show($id)
+    {
+        $order = Order::findOrFail($id);
+        $suppliers = User::whereHas('roles', function ($q) {
+            $q->where('slug', 'supplier');
+        })->get();
+        $dapurs = User::whereHas('roles', function ($q) {
+            $q->where('slug', 'dapur');
+        })->get();
+        
+        return view('Admin.order.show', compact('order', 'suppliers', 'dapurs'));
+    }
+
+    public function sendToDapurSupplier(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+        $order->status_order = true;
+        $order->pesanan_tambahan = $request->pesanan_tambahan;
+        $order->keterangan_masak = $request->keterangan_masak;
+        $order->supplier_id = $request->supplier_id;
+        $order->dapur_id = $request->dapur_id;
+        $order->save();
+
+        return redirect()->route('admin.order.show', $order->id)->with('success', 'Order dikirim ke dapur dan supplier.');
+    }
     public function midtransToken(Request $request)
     {
         Config::$serverKey = config('midtrans.server_key');

@@ -13,7 +13,7 @@ Terima kasih, pesanan aqiqah Anda telah berhasil diproses.
 - **Jumlah Kambing:** {{ $order->quantity }}
 - **Jumlah Kotakan:** {{ $order->jumlah_kotakan }}
 - **Total Harga:** Rp{{ number_format($order->total_harga,0,',','.') }}
-- **Status Pembayaran:** {{ $order->midtrans_transaction_status }}
+- **Status Pembayaran:** {{ $order->midtrans_transaction_status == 'settlement' ? 'Berhasil' : 'Pending' }}
 
 Tim Nurul Hayat akan segera memproses pesanan Anda.
 
