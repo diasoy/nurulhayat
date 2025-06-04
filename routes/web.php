@@ -7,6 +7,8 @@ use App\Http\Controllers\DapurOrderController;
 use App\Http\Controllers\SupplierOrderController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\DapurController;
+use App\Http\Controllers\DashboardController;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 Route::get('/', function () {
     return view('welcome');
@@ -36,17 +38,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //ADMIN
     Route::middleware(['role:admin'])->prefix('admin')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('admin.dashboard.dashboard');
-        })->name('admin.dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
         Route::get('/users', function () {
             return view('admin.users');
         })->name('admin.users');
-
         Route::get('/orders', [OrderController::class, 'index'])->name('admin.order.index');
-
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('admin.order.show');
+        Route::get('/orders/{order}/edit', [OrderController::class, 'edit'])->name('admin.order.edit');
+        Route::post('/orders/{order}/send', [OrderController::class, 'sendToDapurSupplier'])
+            ->name('admin.order.send');
+        Route::post('/orders/download-pdf', [OrderController::class, 'downloadPdf'])
+            ->name('admin.order.download-pdf');
+
 
         Route::get('/dapur', [DapurController::class, 'index'])->name('admin.dapur.index');
         Route::get('/dapur/create', function () {
@@ -68,7 +72,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/supplier/{user}', [SupplierController::class, 'update'])->name('admin.supplier.update');
         Route::delete('/supplier/{user}', [SupplierController::class, 'destroy'])->name('admin.supplier.destroy');
 
-
         Route::post('/admin/orders/{order}/send', [OrderController::class, 'sendToDapurSupplier'])->name('admin.order.send');
     });
 
@@ -76,13 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //DAPUR
     Route::middleware(['role:dapur'])->prefix('dapur')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('dapur.dashboard.dashboard');
-        })->name('dapur.dashboard');
 
-        Route::get('/inventory', function () {
-            return view('dapur.inventory');
-        })->name('dapur.inventory');
+        Route::get('/dashboard', [DapurController::class, 'dashboard'])->name('dapur.dashboard');
+
 
         Route::get('/orders', [DapurOrderController::class, 'index'])->name('dapur.orders');
 
@@ -94,15 +93,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/stok', function () {
             return view('dapur.stok.index');
         })->name('dapur.stok');
+
+        Route::get('/api/order-statistics', [DapurOrderController::class, 'getOrderStatistics'])->name('api.order.statistics');
+
+        Route::post('/orders/download-pdf', [DapurOrderController::class, 'downloadPdf'])
+            ->name('dapur.order.download-pdf');
     });
 
 
 
     //SUPPLIER
     Route::middleware(['role:supplier'])->prefix('supplier')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('supplier.dashboard.dashboard');
-        })->name('supplier.dashboard');
+        Route::get('/dashboard', [SupplierController::class, 'dashboard'])->name('supplier.dashboard');
+
 
         Route::get('/products', function () {
             return view('supplier.products');
@@ -121,6 +124,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/orders/{order}/update-status', [SupplierOrderController::class, 'updateStatus'])
             ->name('supplier.order.updateStatus');
+
+
+        Route::post('/orders/download-pdf', [SupplierOrderController::class, 'downloadPdf'])
+            ->name('supplier.order.download-pdf');
     });
 
 

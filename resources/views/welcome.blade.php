@@ -11,6 +11,8 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
+    <link rel="icon" href="{{ asset('logo.jpg') }}" type="image/x-icon">
+
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
@@ -215,29 +217,8 @@
             </div>
 
             <div class="flex flex-col md:flex-row gap-8">
-                <div class="md:w-1/2">
-                    <form class="space-y-4">
-                        <div>
-                            <label for="name" class="block text-gray-700 dark:text-gray-300 mb-2">Nama Lengkap</label>
-                            <input type="text" id="name" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-800 dark:text-white" placeholder="Masukkan nama lengkap">
-                        </div>
-                        <div>
-                            <label for="email" class="block text-gray-700 dark:text-gray-300 mb-2">Email</label>
-                            <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-800 dark:text-white" placeholder="Masukkan email">
-                        </div>
-                        <div>
-                            <label for="phone" class="block text-gray-700 dark:text-gray-300 mb-2">Nomor Telepon</label>
-                            <input type="tel" id="phone" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-800 dark:text-white" placeholder="Masukkan nomor telepon">
-                        </div>
-                        <div>
-                            <label for="message" class="block text-gray-700 dark:text-gray-300 mb-2">Pesan</label>
-                            <textarea id="message" rows="4" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-gray-800 dark:text-white" placeholder="Tulis pesan Anda di sini"></textarea>
-                        </div>
-                        <button type="submit" class="bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-lg transition duration-300">Kirim Pesan</button>
-                    </form>
-                </div>
 
-                <div class="md:w-1/2">
+                <div class="md:w-1/2 mx-auto">
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full">
                         <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Informasi Kontak</h3>
                         <div class="space-y-4">

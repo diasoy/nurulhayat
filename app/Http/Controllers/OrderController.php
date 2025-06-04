@@ -11,13 +11,203 @@ use Illuminate\Support\Facades\Mail;
 use Midtrans\Snap;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
+use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::all();
+        $query = Order::query();
+
+        // Filter pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('order_id', 'like', '%' . $search . '%')
+                    ->orWhere('pemesan_nama', 'like', '%' . $search . '%')
+                    ->orWhere('pemesan_email', 'like', '%' . $search . '%')
+                    ->orWhere('pemesan_handphone', 'like', '%' . $search . '%')
+                    ->orWhere('aqiqoh_nama', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Filter berdasarkan periode
+        if ($request->filled('periode')) {
+            $today = Carbon::now();
+
+            switch ($request->periode) {
+                case 'today':
+                    $query->whereDate('created_at', $today->format('Y-m-d'));
+                    break;
+                case 'this_week':
+                    $query->whereBetween('created_at', [
+                        $today->copy()->startOfWeek()->format('Y-m-d'),
+                        $today->copy()->endOfWeek()->format('Y-m-d')
+                    ]);
+                    break;
+                case 'next_week':
+                    $query->whereBetween('pelaksanaan_tanggal', [
+                        $today->copy()->addWeek()->startOfWeek()->format('Y-m-d'),
+                        $today->copy()->addWeek()->endOfWeek()->format('Y-m-d')
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereMonth('created_at', $today->month)
+                        ->whereYear('created_at', $today->year);
+                    break;
+                case 'next_month':
+                    $nextMonth = $today->copy()->addMonth();
+                    $query->whereMonth('pelaksanaan_tanggal', $nextMonth->month)
+                        ->whereYear('pelaksanaan_tanggal', $nextMonth->year);
+                    break;
+                case 'custom':
+                    if ($request->filled('start_date') && $request->filled('end_date')) {
+                        $query->whereBetween('created_at', [
+                            $request->start_date,
+                            $request->end_date
+                        ]);
+                    }
+                    break;
+            }
+        }
+
+        // Filter berdasarkan status pembayaran
+        if ($request->filled('payment_status')) {
+            $query->where('midtrans_transaction_status', $request->payment_status);
+        }
+
+        // Filter berdasarkan status order
+        if ($request->filled('status')) {
+            $query->where('status_order', $request->status == 'Terkirim' ? 1 : 0);
+        }
+
+        $orders = $query->latest()->get();
         return view('Admin.order.index', compact('orders'));
+    }
+
+    public function downloadPdf(Request $request)
+    {
+        // Gunakan query yang sama dengan index
+        $query = Order::query();
+
+        // Filter pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('order_id', 'like', '%' . $search . '%')
+                    ->orWhere('pemesan_nama', 'like', '%' . $search . '%')
+                    ->orWhere('pemesan_email', 'like', '%' . $search . '%')
+                    ->orWhere('pemesan_handphone', 'like', '%' . $search . '%')
+                    ->orWhere('aqiqoh_nama', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Filter berdasarkan periode
+        if ($request->filled('periode')) {
+            $today = Carbon::now();
+
+            switch ($request->periode) {
+                case 'today':
+                    $query->whereDate('created_at', $today->format('Y-m-d'));
+                    break;
+                case 'this_week':
+                    $query->whereBetween('created_at', [
+                        $today->copy()->startOfWeek()->format('Y-m-d'),
+                        $today->copy()->endOfWeek()->format('Y-m-d')
+                    ]);
+                    break;
+                case 'next_week':
+                    $query->whereBetween('pelaksanaan_tanggal', [
+                        $today->copy()->addWeek()->startOfWeek()->format('Y-m-d'),
+                        $today->copy()->addWeek()->endOfWeek()->format('Y-m-d')
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereMonth('created_at', $today->month)
+                        ->whereYear('created_at', $today->year);
+                    break;
+                case 'next_month':
+                    $nextMonth = $today->copy()->addMonth();
+                    $query->whereMonth('pelaksanaan_tanggal', $nextMonth->month)
+                        ->whereYear('pelaksanaan_tanggal', $nextMonth->year);
+                    break;
+                case 'custom':
+                    if ($request->filled('start_date') && $request->filled('end_date')) {
+                        $query->whereBetween('created_at', [
+                            $request->start_date,
+                            $request->end_date
+                        ]);
+                    }
+                    break;
+            }
+        }
+
+        // Filter berdasarkan status pembayaran
+        if ($request->filled('payment_status')) {
+            $query->where('midtrans_transaction_status', $request->payment_status);
+        }
+
+        // Filter berdasarkan status order
+        if ($request->filled('status')) {
+            $query->where('status_order', $request->status == 'Terkirim' ? 1 : 0);
+        }
+
+        $orders = $query->latest()->get();
+
+        // Statistik untuk laporan
+        $statistics = [
+            'total_orders' => $orders->count(),
+            'settlement_count' => $orders->where('midtrans_transaction_status', 'settlement')->count(),
+            'pending_count' => $orders->where('midtrans_transaction_status', 'pending')->count(),
+            'total_revenue' => $orders->where('midtrans_transaction_status', 'settlement')->sum('total_harga'),
+            'filter_info' => $this->getFilterInfo($request)
+        ];
+
+        $pdf = Pdf::loadView('Admin.order.pdf-report', compact('orders', 'statistics'))
+            ->setPaper('a4', 'landscape');
+
+        $filename = 'laporan-order-' . date('Y-m-d-H-i-s') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    private function getFilterInfo($request)
+    {
+        $filters = [];
+
+        if ($request->filled('search')) {
+            $filters[] = 'Pencarian: ' . $request->search;
+        }
+
+        if ($request->filled('periode')) {
+            switch ($request->periode) {
+                case 'today':
+                    $filters[] = 'Periode: Hari Ini';
+                    break;
+                case 'this_week':
+                    $filters[] = 'Periode: Minggu Ini';
+                    break;
+                case 'this_month':
+                    $filters[] = 'Periode: Bulan Ini';
+                    break;
+                case 'custom':
+                    if ($request->filled('start_date') && $request->filled('end_date')) {
+                        $filters[] = 'Periode: ' . $request->start_date . ' - ' . $request->end_date;
+                    }
+                    break;
+            }
+        }
+
+        if ($request->filled('payment_status')) {
+            $filters[] = 'Status Pembayaran: ' . ucfirst($request->payment_status);
+        }
+
+        if ($request->filled('status')) {
+            $filters[] = 'Status Order: ' . ($request->status == '1' ? 'Terkirim' : 'Belum Terkirim');
+        }
+
+        return $filters;
     }
 
     public function show($id)
@@ -29,21 +219,77 @@ class OrderController extends Controller
         $dapurs = User::whereHas('roles', function ($q) {
             $q->where('slug', 'dapur');
         })->get();
-        
+
         return view('Admin.order.show', compact('order', 'suppliers', 'dapurs'));
     }
 
+
     public function sendToDapurSupplier(Request $request, $id)
     {
-        $order = Order::findOrFail($id);
-        $order->status_order = true;
-        $order->pesanan_tambahan = $request->pesanan_tambahan;
-        $order->keterangan_masak = $request->keterangan_masak;
-        $order->supplier_id = $request->supplier_id;
-        $order->dapur_id = $request->dapur_id;
-        $order->save();
 
-        return redirect()->route('admin.order.show', $order->id)->with('success', 'Order dikirim ke dapur dan supplier.');
+        // $request->validate([
+        //     'pemesan_nama' => 'required',
+        //     'pemesan_email' => 'required|email',
+        //     'pemesan_handphone' => 'required',
+        //     'pemesan_alamat' => 'required',
+        //     'aqiqoh_nama' => 'required',
+        //     'aqiqoh_binbinti' => 'required',
+        //     'aqiqoh_jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+        //     'aqiqoh_tempat_lahir' => 'required',
+        //     'aqiqoh_tanggal_lahir' => 'required|date',
+        //     'pelaksanaan_hari' => 'required',
+        //     'pelaksanaan_tanggal' => 'required|date',
+        //     'pelaksanaan_jam' => 'required',
+        //     'pelaksanaan_alamat' => 'required',
+        //     'type_aqiqah' => 'required',
+        //     'menu_option' => 'required',
+        //     'jumlah_kotakan' => 'required|numeric|min:1',
+        //     'matang_tanggal' => 'required|date',
+        //     'matang_jam' => 'required',
+        //     'supplier_id' => 'required|exists:users,id',
+        //     'dapur_id' => 'required|exists:users,id',
+        // ]);
+        try {
+            $order = Order::findOrFail($id);
+            $jamMatang = null;
+            if ($request->matang_tanggal && $request->matang_jam) {
+                $jamMatang = Carbon::createFromFormat(
+                    'Y-m-d H:i',
+                    $request->matang_tanggal . ' ' . $request->matang_jam
+                );
+            }
+            $order->update([
+                'pemesan_nama' => $request->pemesan_nama,
+                'pemesan_email' => $request->pemesan_email,
+                'pemesan_handphone' => $request->pemesan_handphone,
+                'pemesan_alamat' => $request->pemesan_alamat,
+                'aqiqoh_nama' => $request->aqiqoh_nama,
+                'aqiqoh_binbinti' => $request->aqiqoh_binbinti,
+                'aqiqoh_jenis_kelamin' => $request->aqiqoh_jenis_kelamin,
+                'aqiqoh_tempat_lahir' => $request->aqiqoh_tempat_lahir,
+                'aqiqoh_tanggal_lahir' => $request->aqiqoh_tanggal_lahir,
+                'pelaksanaan_hari' => $request->pelaksanaan_hari,
+                'pelaksanaan_tanggal' => $request->pelaksanaan_tanggal,
+                'pelaksanaan_jam' => $request->pelaksanaan_jam,
+                'pelaksanaan_alamat' => $request->pelaksanaan_alamat,
+                'type_aqiqah' => $request->type_aqiqah,
+                'menu_option' => $request->menu_option,
+                'jumlah_kotakan' => $request->jumlah_kotakan,
+                'status_order' => true,
+                'pesanan_tambahan' => $request->pesanan_tambahan,
+                'keterangan_masak' => $request->keterangan_masak,
+                'supplier_id' => $request->supplier_id,
+                'dapur_id' => $request->dapur_id,
+                'jam_matang' => $jamMatang,
+            ]);
+
+            return redirect()->route('admin.order.show', $order->id)
+                ->with('success', 'Order berhasil diperbarui dan dikirim ke dapur dan supplier.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
     }
     public function midtransToken(Request $request)
     {

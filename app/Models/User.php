@@ -59,4 +59,13 @@ class User extends Authenticatable
         }
         return !!$role->intersect($this->roles)->count();
     }
+
+    public function dapurOrders()
+    {
+        return $this->hasMany(Order::class, 'dapur_id');
+    }
+    public function supplierOrders()
+    {
+        return $this->hasMany(Order::class, 'supplier_id');
+    }
 }

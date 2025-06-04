@@ -72,14 +72,6 @@
         {{ __('Orders') }}
       </a>
 
-      <a href="{{ route('dapur.stok') }}"
-        class="{{ request()->is('dapur/stok*') ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' }} 
-                      flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors">
-        <svg class="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0H4" />
-        </svg>
-        {{ __('Stok') }}
-      </a>
 
       @elseif(auth()->user()->hasRole('supplier'))
       <!-- Supplier Navigation -->
@@ -100,17 +92,6 @@
         </svg>
         {{ __('Orders') }}
       </a>
-
-      <a href="{{ route('supplier.stok') }}"
-        class="{{ request()->is('supplier/stok*') ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' }} 
-                      flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors">
-        <svg class="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0H4" />
-        </svg>
-        {{ __('Stok') }}
-      </a>
-
-
       @endif
     </nav>
 

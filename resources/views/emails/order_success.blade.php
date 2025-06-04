@@ -15,7 +15,7 @@ Terima kasih, pesanan aqiqah Anda telah berhasil diproses.
 - **Total Harga:** Rp{{ number_format($order->total_harga,0,',','.') }}
 - **Status Pembayaran:** {{ $order->midtrans_transaction_status == 'settlement' ? 'Berhasil' : 'Pending' }}
 
-Tim Nurul Hayat akan segera memproses pesanan Anda.
+Tim Nurul Hayat akan segera menghubungi dan memproses pesanan Anda.
 
 Terima kasih,<br>
 {{ config('app.name') }}

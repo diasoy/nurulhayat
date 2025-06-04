@@ -19,7 +19,7 @@
           <li><b>No HP:</b> {{ $order->pemesan_handphone }}</li>
           <li><b>Alamat:</b> {{ $order->pemesan_alamat }}</li>
           <li><b>Nama Anak:</b> {{ $order->aqiqoh_nama }}</li>
-          <li><b>Tipe Aqiqah:</b> {{ $order->type_aqiqah }}</li>
+          <li><b>Tipe Aqiqah:</b> {{ $order->menu_option }}</li>
           <li><b>Jumlah Kambing:</b> {{ $order->quantity }}</li>
           <li><b>Jumlah Kotakan:</b> {{ $order->jumlah_kotakan }}</li>
           <li><b>Keterangan Masak:</b> {{ $order->keterangan_masak ?? '-' }}</li>

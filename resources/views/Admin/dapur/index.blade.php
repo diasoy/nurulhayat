@@ -32,9 +32,9 @@
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                 @forelse($users as $user)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $user->name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $user->email }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap flex gap-2">
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ $user->name }}</td>
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ $user->email }}</td>
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap flex gap-2">
                                         <a href="{{ route('admin.dapur.show', $user->id) }}" class="text-blue-600">Detail</a>
                                         <a href="{{ route('admin.dapur.edit', $user->id) }}" class="text-yellow-600">Edit</a>
                                         <form action="{{ route('admin.dapur.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Yakin hapus user?')" style="display:inline;">
